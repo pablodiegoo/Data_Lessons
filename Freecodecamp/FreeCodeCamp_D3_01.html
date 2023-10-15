@@ -107,13 +107,13 @@ d3.json(url).then(function(data) {
     .attr("height", function(d) {
       return d;
     })
-    .style("fill", "blue")
-    .attr("transform", "translate(0, -1)")
     .append("title")
-    .attr("id", "tooltip")
     .attr("data-date", function(d, i) {return dataset[i][0];})
-    .text(function(d, i) {return dataset[i][0] + "\n" + "$" + dataset[i][1] + " Billion";});    
-});
+    .attr("data-gdp", function(d, i) {return dataset[i][1];})
+    .text(function(d, i) {
+      return dataset[i][0] + "\n" + "$" + dataset[i][1] + " Billion";
+    });
+  })
 </script>
 
 
