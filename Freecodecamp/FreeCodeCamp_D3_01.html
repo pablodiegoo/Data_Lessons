@@ -10,7 +10,7 @@
     #canva{
       margin: 0 auto;
       display: block;
-      width: 950px;
+      width: 920px;
       height: 550px;
       background-color: #fff;
       border: 1px solid #ccc;
@@ -58,18 +58,18 @@ d3.json(url).then(function(data) {
   xMax.setMonth(xMax.getMonth() + 3);
   var xScale = d3.scaleTime()
                 .domain([d3.min(years), xMax])
-                .range([0, 900]);
+                .range([50, 900]);
 
   var xAxis = d3.axisBottom().scale(xScale);
 
   var svg = d3.select("#canva")
               .append("svg")
-              .attr("width", 1000)
+              .attr("width", 900)
               .attr("height", 600);
   svg.append("g")
     .call(xAxis)
     .attr("id", "x-axis")
-    .attr("transform", "translate(50, 500)");
+    .attr("transform", "translate(0, 500)");
 
   var GDP = dataset.map(function(item) {
     return item[1];
@@ -84,7 +84,7 @@ d3.json(url).then(function(data) {
 
   var yAxisScale = d3.scaleLinear()
                       .domain([0, gdpMax])
-                      .range([500, 50]);
+                      .range([500, 0]);
 
   var yAxis = d3.axisLeft(yAxisScale);
 
@@ -101,12 +101,18 @@ d3.json(url).then(function(data) {
     .attr("data-date", function(d, i) {return dataset[i][0];})
     .attr("data-gdp", function(d, i) {return dataset[i][1];})
     .attr("class", "bar")
-    .attr("x", function(d, i) {return 50+xScale(years[i]);})
+    .attr("x", function(d, i) {return xScale(years[i]);})
     .attr("y", function(d, i) {return 500 - d;})
     .attr("width", 3)
     .attr("height", function(d) {
       return d;
     })
+    .style("fill", "blue")
+    .attr("transform", "translate(0, -1)")
+    .append("title")
+    .attr("id", "tooltip")
+    .attr("data-date", function(d, i) {return dataset[i][0];})
+    .text(function(d, i) {return dataset[i][0] + "\n" + "$" + dataset[i][1] + " Billion";});    
 });
 </script>
 
