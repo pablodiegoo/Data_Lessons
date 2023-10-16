@@ -1,0 +1,48 @@
+#canva{
+  margin: 0 auto;
+  display: block;
+  width: 900px;
+  height: 500px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 30px;
+  border-radius: 30px;
+  box-shadow: 2px 2px 20px;
+}
+body {
+    width: 1000;
+    height: 1000;
+    align-items: center;
+    background-color: lightblue;
+}
+#title {
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+    padding: 30px;
+}
+#tooltip {
+  opacity: 0;
+  border-radius: 20px;
+  background: #0b2b7a;
+  color: #a0a0a0;
+  position: fixed;
+  top: 170px;
+  left:50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  padding: 10px;
+}
+#legend {
+  height: 85px;
+  width: 300px;
+  border-radius: 20px;
+  background: #0b2b7a;
+  color: #a0a0a0;
+  position: fixed;
+  top: 750px;
+  text-align: center;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px;
+}
