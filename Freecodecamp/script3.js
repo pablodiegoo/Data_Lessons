@@ -25,8 +25,131 @@
 var url = "https://raw.githubusercontent.com/freeCodeCamp/ProjectReferenceData/master/global-temperature.json";
 
 d3.select("#title")
-.appent("h1")
-.text("Heat Map of Global Temperature");
+  .html("<h1>Heat Map of Global Temperature</h1>");
 d3.select("#description")
-.appent("h2")
-.text("Monthly Land-Surface Temperature from 1753 - 2015");
+  .html("<h3>Monthly Land-Surface Temperature from 1753 - 2015</h3>");
+d3.json(url).then(function(data) {
+  dataset = data;
+  var baseTemp = dataset.baseTemperature;
+  var monthlyVariance = dataset.monthlyVariance;
+  var years = monthlyVariance.map(function(item) {return item.year;});
+  var xMax = d3.max(years);
+  var xMin = d3.min(years);
+  var xScale = d3.scaleLinear()
+                 .domain([xMin, xMax])
+                 .range([0, 800]);
+  var xAxis = d3.axisBottom().scale(xScale).tickFormat(d3.format("d"));
+  var svg = d3.select("#canva")
+              .append("svg")
+              .attr("width", 900)
+              .attr("height", 600);
+  svg.append("g")
+    .call(xAxis)
+    .attr("id", "x-axis")
+    .attr("transform", "translate(70, 500)");
+  var months = monthlyVariance.map(function(item) {return item.month;});
+  var yMax = d3.max(months);
+  var yMin = d3.min(months);
+  var yScale = d3.scaleLinear()
+                 .domain([yMax, yMin])
+                 .range([0, 450]);
+  var yAxis = d3.axisLeft().scale(yScale).tickFormat(function(d) {
+    var date = new Date(0);
+    date.setUTCMonth(d);
+    return d3.timeFormat("%B")(date);
+  });
+  svg.append("g")
+    .call(yAxis)
+    .attr("id", "y-axis")
+    .attr("transform", "translate(60, 20)");
+  d3.select("#legend")
+    // distance between legend and the canvas must be 30px
+    .style("top", function() {return (document.getElementById("canva").offsetHeight + document.getElementById("title").offsetHeight + document.getElementById("description").offsetHeight + 170) + "px";})    
+    .html("<h3>Temperature</h3>")
+    .append("svg")
+    .attr("width", 300)
+    .attr("height", 50)
+    .attr("id", "legend-axis")
+    .append("g");
+  var legendScale = d3.scaleLinear()
+                      .domain([0, 4])
+                      .range([0, 300]);
+  var legendAxis = d3.axisBottom().scale(legendScale).tickFormat(function(d) {
+    if (d === 0) {
+      return "";
+    } else if (d === 1) {
+      return "2";
+    } else if (d === 2) {
+      return "4";
+    } else if (d === 3) {
+      return "6";
+    } else {
+      return "";
+    }
+  }
+  );
+  d3.select("#legend-axis")
+    .call(legendAxis)
+    .style("font-size", "15px")
+    .style("color","#ccc")
+    .attr("transform", "translate(0, -20)");
+  d3.select("#legend-axis")
+    .selectAll("rect")
+    .data([0, 1, 2, 3])
+    .enter()
+    .append("rect")
+    .attr("x", function(d) {return d * 75;})
+    .attr("y", 30)
+    .attr("width", 75)
+    .attr("height", 20)
+    .style("padding-bottom",10)
+    .attr("fill", function(d) {
+      if (d === 0) {
+        return "blue";
+      } else if (d === 1) {
+        return "lightblue";
+      } else if (d === 2) {
+        return "orange";
+      } else {
+        return "red";
+      }
+    });
+  svg.selectAll("rect")
+.data(monthlyVariance)
+.enter()
+.append("rect")
+.attr("class", "cell")
+.attr("data-month", function(d) {return d.month - 1;})
+.attr("data-year", function(d) {return d.year;})
+.attr("data-temp", function(d) {return d.variance;})
+.attr("x", function(d) {return xScale(d.year) - 0.1;})
+.attr("y", function(d) {return yScale(d.month - 0.75);})
+.attr("width", function(d) {return xScale(d.year + 1) - xScale(d.year);})
+.attr("height", 30)
+.attr("fill", function(d) {
+  if (d.variance <= -2) {
+    return "blue";
+  } else if (d.variance <= 0) {
+    return "lightblue";
+  } else if (d.variance <= 2) {
+    return "orange";
+  } else {
+    return "red";
+  }
+})
+.attr("transform", "translate(70, -20)")
+.on("mouseover", function(d) {
+  d3.select('#tooltip')
+    .style("opacity", 1)
+    .attr("data-year", d.year)
+    .style("top", (d3.event.pageY - 10) + "px")
+    .style("left", (d3.event.pageX + 10) + "px")
+    .style("transform", "translate(0, -100%)")
+    .html(d.year+" - "+d.month+": "+(baseTemp + d.variance).toFixed(2)+"℃");
+})
+.on("mouseout", function(d) {
+  d3.select('#tooltip')
+    .style("opacity", 0)
+});
+}
+);
