@@ -38,7 +38,7 @@ d3.select('body')
   .attr('id', 'legend');
 
 var urlEducational = 'https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/for_user_education.json';
-var urlCounty = 'https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json';
+var urlGeo = 'https://cdn.freecodecamp.org/testable-projects-fcc/data/choropleth_map/counties.json';
 
 d3.json(urlEducational).then(function(data) {
   dataset = data;
@@ -58,7 +58,7 @@ d3.json(urlEducational).then(function(data) {
   d3.select("#legend")
     .append("svg")
     .attr("id", "legendSVG")
-    .attr("width", 4000)
+    .attr("width", 320)
     .attr("height", 100);
   d3.select("#legendSVG")
     .append("g")
@@ -71,7 +71,9 @@ d3.json(urlEducational).then(function(data) {
     .attr("x", 150)
     .attr("y", 20)
     .style("text-anchor", "middle")
-    .text("Percentage of Bachelor's degree or higher");
+    .text("Percentage of Bachelor's degree or higher")
+    .style("font-weight", "bold")
+    .style("fill", "#aaa");
   d3.select("#legendSVG")
     // make rects for the legends using warm colors
     .append("rect")
@@ -130,12 +132,59 @@ d3.json(urlEducational).then(function(data) {
     .attr("height", 20)
     .attr("fill", "#40ff00");
   // Choropleth Map
-  d3.json(urlCounty).then(function(data) {
-    dataset = data;
-    var path = d3.geoPath()
-                 .projection(d3.geoAlbersUsa());
-    svg.selectAll('path')
-  });
+  var path = d3.geoPath();
 
+  var colorScale = d3.scaleLinear().domain([xMin, xMax]).range(["#ff0000", "#40ff00"]);
 
-})
+  d3.json(urlGeo).then(function(data) {
+    if (data) {
+      var geojson = topojson.feature(data, data.objects.counties).features;
+      d3.json(urlEducational).then(function(data) {
+        if (data) {
+          var dataset = data;
+          svg.selectAll("path")
+             .data(geojson)
+             .enter()
+             .append("path")
+             // make it smaller
+             .attr("transform", "scale(0.82, 0.82) translate(100, 0)")
+             .attr("d", path)
+             .attr("class", "county")
+             .attr("data-fips", function(item) {return item.id;})
+             .attr("data-education", function(item) {
+               var fips = item.id;
+               var result = dataset.filter(function(item) {
+                 return item.fips == fips;
+               });
+               return result[0].bachelorsOrHigher;
+             })
+             .attr("fill", function(item) {
+               var fips = item.id;
+               var result = dataset.filter(function(item) {
+                 return item.fips == fips;
+               });
+               return colorScale(result[0].bachelorsOrHigher);
+             })
+             .on("mouseover", function(item) {
+               var fips = item.id;
+               var result = dataset.filter(function(item) {
+                 return item.fips == fips;
+               });
+               d3.select("#tooltip")
+                 .style("opacity", 1)
+                 .style("left", d3.event.pageX + 10 + "px")
+                 .style("top", d3.event.pageY + 10 + "px")
+                 .attr("data-education", result[0].bachelorsOrHigher)
+                 .html(result[0].area_name + ", " + result[0].state + ": " + result[0].bachelorsOrHigher + "%");
+             })
+             .on("mouseout", function(item) {
+               d3.select("#tooltip")
+                 .style("opacity", 0);
+             });
+        }
+      });
+    }
+  }
+  );
+}
+);
