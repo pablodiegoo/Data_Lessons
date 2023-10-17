@@ -38,14 +38,33 @@ d3.select("body")
   .append("div")
   .attr("id", "legend");
 
+var dt_games = {
+    url: "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json",
+    title: "Video Game Sales",
+    desc: "Top 100 Video Games by Platform",
+    cat: "Platform",
+    info: "Sales"
+  };
+var dt_movies = {
+  url: "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/movie-data.json",
+  title: "Movie Sales",
+  desc: "Top 100 Movies By Genre",
+  cat: "Genre",
+  info: "Revenue"
+  };
+
+var dt_kick = {
+  url: "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/kickstarter-funding-data.json",
+  title: "Kickstarter Pledges",
+  desc: "Top 100 Campaigns By Category",
+  cat: "Category",
+  info: "Pledged"
+  };
+  
+  var dt = dt_games;
+
 const width = 900;
 const height = 500;
-
-const urlKickstarter = "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/kickstarter-funding-data.json";
-const urlMovie = "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/movie-data.json";
-const urlVideoGame = "https://cdn.freecodecamp.org/testable-projects-fcc/data/tree_map/video-game-sales-data.json";
-
-const color = d3.scaleOrdinal(d3.schemeCategory10);
 
 const svg = d3.select("#canva")
   .append("svg")
@@ -57,9 +76,6 @@ const tooltip = d3.select("#tooltip");
 const treemap = d3.treemap()
   .size([width, height]);
 
-const fader = function(color) { return d3.interpolateRgb(color, "#fff")(0.2); };
-const colorScale = d3.scaleOrdinal(d3.schemeCategory10.map(fader));
-
 const format = d3.format(",d");
 
 const legend = d3.select("body")
@@ -68,167 +84,106 @@ const legend = d3.select("body")
   .attr("height", 50)
   .attr("id", "legend");
 
-// load legend values from json
-d3.json(urlVideoGame).then(function(data) {
-  const categories = data.children.map(function(item) {
-    return item.name;
-  });
+const colorCategory = d3.scaleOrdinal(d3.schemeCategory10);
 
-  const legendItem = legend.selectAll("g")
-    .data(categories)
-    // change the height of the legend
-    .style("height", 100)
+const color = d3.scaleOrdinal()
+
+const fader = function(color) { return d3.interpolateRgb(color, "#fff")(0.2); };
+
+const colorLegend = d3.scaleOrdinal(d3.schemeCategory10.map(fader)); 
+
+const tooltipMouseover = function(d) {
+  tooltip.style("opacity", 1)
+    .style("left", (d3.event.pageX + 10) + "px")
+    .style("top", (d3.event.pageY - 28) + "px")
+    .attr("data-value", d.data.value)
+    .html(
+      "Name: " + d.data.name + 
+      "<br>Category: " + d.data.category + 
+      "<br>Value: " + d.data.value
+    );
+}
+
+const tooltipMouseout = function(d) {
+  tooltip.style("opacity", 0);
+}
+
+const sumCategoryData = function(d) {
+  return d3.sum(d.children, function(d) {
+    return d.value;
+  });
+}
+
+const returnCategory = function(d) {
+  // return unique category items
+  return (d.data.category);
+}
+
+const legendMouseover = function(d) {
+  tooltip.style("opacity", 1)
+    .style("left", (d3.event.pageX + 10) + "px")
+    .style("top", (d3.event.pageY - 28) + "px")
+    // sum the data from entire category items
+    .attr("data-value", sumCategoryData(d))
+    .html(
+      "Category: " + d.data.category + 
+      "<br>Value: " + sumCategoryData(d)
+    );
+}
+
+const legendMouseout = function(d) {
+  tooltip.style("opacity", 0);
+}
+
+d3.json(dt.url).then(function(data) {
+  var base = d3.hierarchy(data)
+    .sum(d => d.value)
+    .sort((a, b) => b.height - a.height || b.value - a.value);
+  treemap(base);
+  const cell = svg.selectAll("g")
+    .data(base.leaves())
     .enter()
     .append("g")
-    //each 3 items in a row
-    .attr("transform", function(d, i) {
-      return "translate(" + (i % 3) * 100 + "," + Math.floor(i / 3) * 20 + ")";
-    })
-
+    .attr("transform", d => "translate(" + d.x0 + "," + d.y0 + ")");
+  cell.append("rect")
+    .attr("class", "tile")
+    .attr("data-name", d => d.data.name)
+    .attr("data-category", d => d.data.category)
+    .attr("data-value", d => d.data.value)
+    .attr("width", d => d.x1 - d.x0)
+    .attr("height", d => d.y1 - d.y0)
+    .attr("fill", d => colorCategory(d.data.category))
+    .on("mouseover", tooltipMouseover)
+    .on("mouseout", tooltipMouseout);
+  cell.append("text")
+    .selectAll("tspan")
+    .data(d => d.data.name.split(/(?=[A-Z][^A-Z])/g))
+    .enter()
+    .append("tspan")
+    .attr("x", 4)
+    .attr("y", (d, i) => 13 + i * 10)
+    .attr("font-size", "10px")
+    .attr("font-family", "sans-serif")
+    .attr("fill", "black")
+    .attr("font-weight", "bold")
+    .attr("text-anchor", "start")
+    .text(d => d);
+  const legendItem = legend.selectAll("g")
+    .data(base.leaves().map(returnCategory).filter((item, index, self) => self.indexOf(item) === index))
+    .enter()
+    .append("g")
+    // break in rows according the width of the svg
+    .attr ("transform", (d, i) => "translate(" + (i * 65) + ", 0)")
+    .on("mouseover", legendMouseover)
+    .on("mouseout", legendMouseout);
   legendItem.append("rect")
+    .attr("class", "legend-item")
     .attr("width", 20)
     .attr("height", 20)
-    .attr("class", "legend-item")
-    .attr("fill", function(d) {
-      return color(d);
-    });
-
+    .attr("fill", d => colorCategory(d));
   legendItem.append("text")
-    .attr("x", 30)
+    .attr("x", 25)
     .attr("y", 15)
-    .text(function(d) {
-      return d;
-    });
-
-  d3.json(urlVideoGame).then(function(data) {
-    const root = d3.hierarchy(data)
-      .eachBefore(function(d) {
-        d.data.id = (d.parent ? d.parent.data.id + "." : "") + d.data.name;
-      })
-      .sum(sumBySize)
-      .sort(function(a, b) {
-        return b.height - a.height || b.value - a.value;
-      });
-
-    treemap(root);
-
-    const cell = svg.selectAll("g")
-      .data(root.leaves())
-      .enter().append("g")
-      .attr("transform", function(d) {
-        return "translate(" + d.x0 + "," + d.y0 + ")";
-      });
-
-    cell.append("rect")
-      .attr("id", function(d) {
-        return d.data.id;
-      })
-      .attr("class", "tile")
-      .attr("width", function(d) {
-        return d.x1 - d.x0;
-      })
-      .attr("height", function(d) {
-        return d.y1 - d.y0;
-      })
-      .attr("data-name", function(d) {
-        return d.data.name;
-      })
-      .attr("data-category", function(d) {
-        return d.data.category;
-      })
-      .attr("data-value", function(d) {
-        return d.data.value;
-      })
-      .attr("fill", function(d) {
-        return color(d.data.category);
-      })
-      .on("mousemove", function(d) {
-        tooltip.style("opacity", 0.9);
-        tooltip.html(
-            "Name: " + d.data.name +
-            "<br>Category: " + d.data.category +
-            "<br>Value: " + d.data.value
-          )
-          .attr("data-value", d.data.value)
-          .style("left", d3.event.pageX + 10 + "px")
-          .style("top", d3.event.pageY + 10 + "px");
-      })
-      .on("mouseout", function(d) {
-        tooltip.style("opacity", 0);
-      });
-
-    cell.append("text")
-      .attr("class", "tile-text")
-      .selectAll("tspan")
-      .data(function(d) {
-        return d.data.name.split(/(?=[A-Z][^A-Z])/g);
-      })
-      .enter().append("tspan")
-      .attr("x", 4)
-      .attr("y", function(d, i) {
-        return 13 +
-          i * 10;
-      }
-      )
-      .text(function(d) {
-        return d;
-      });
-
-    const categories = root.leaves().map(function(nodes) {
-      return nodes.data.category;
-    }
-    );
-    categories.filter(function(category, index, self) {
-      return self.indexOf(category) === index;
-    }
-    );
-
-    const legend = d3.select("#legend");
-    const legendWidth = +legend.attr("width");
-    const LEGEND_OFFSET = 10;
-    const LEGEND_RECT_SIZE = 15;
-    const LEGEND_H_SPACING = 150;
-    const LEGEND_V_SPACING = 10;
-    const LEGEND_TEXT_X_OFFSET = 3;
-    const LEGEND_TEXT_Y_OFFSET = -2;
-    const legendElemsPerRow = Math.floor(legendWidth / LEGEND_H_SPACING);
-
-    const legendElem = legend
-      .append("g")
-      .attr("transform", "translate(60," + LEGEND_OFFSET + ")")
-      .selectAll("g")
-      .data(categories)
-      .enter().append("g")
-      .attr("transform", function(d, i) {
-        return (
-          "translate(" +
-          (i % legendElemsPerRow) * LEGEND_H_SPACING +
-          "," +
-          (Math.floor(i / legendElemsPerRow) * LEGEND_RECT_SIZE +
-            LEGEND_V_SPACING * Math.floor(i / legendElemsPerRow)) +
-          ")"
-        );
-      });
-
-    legendElem
-      .append("rect")
-      .attr("width", LEGEND_RECT_SIZE)
-      .attr("height", LEGEND_RECT_SIZE)
-      .attr("class", "legend-item")
-      .attr("fill", function(d) {
-        return color(d);
-      });
-
-    legendElem
-      .append("text")
-      .attr("x", LEGEND_RECT_SIZE + LEGEND_TEXT_X_OFFSET)
-      .attr("y", LEGEND_RECT_SIZE + LEGEND_TEXT_Y_OFFSET)
-      .text(function(d) {
-        return d;
-      });
-
-  }
-  );
-
+    .text(d => d);
 }
 );
